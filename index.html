@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Giving Tree Reimagined</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Welcome Screen -->
+        <div id="welcome-screen" class="screen active">
+            <div class="welcome-content">
+                <h1 class="main-title">The Giving Tree</h1>
+                <p class="subtitle">Reimagined with AI</p>
+                <div class="story-prompt">
+                    <p class="prompt-text">What if the giving tree was more...</p>
+                    <div class="input-container">
+                        <input type="text" id="user-prompt" placeholder="mysterious, technological, magical..." maxlength="50">
+                        <button id="generate-btn" class="primary-btn">
+                            <span class="btn-text">Generate Story</span>
+                            <div class="loading-spinner hidden"></div>
+                        </button>
+                    </div>
+                </div>
+                <div class="examples">
+                    <p>Try: mysterious, technological, magical, rebellious, ancient, cosmic...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Story Screen -->
+        <div id="story-screen" class="screen">
+            <div class="story-header">
+                <button id="back-btn" class="back-btn">← New Story</button>
+                <h2 id="story-title" class="story-title"></h2>
+                <div class="story-controls">
+                    <button id="narrate-btn" class="control-btn">
+                        <span class="narrate-icon">🔊</span>
+                        <span class="narrate-text">Narrate</span>
+                    </button>
+                    <div class="page-counter">
+                        <span id="current-page">1</span> / <span id="total-pages">1</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="story-content">
+                <div class="story-page">
+                    <div class="page-image-container">
+                        <img id="page-image" src="" alt="Story illustration" class="page-image">
+                        <div class="image-loading">
+                            <div class="loading-spinner"></div>
+                            <p>Generating illustration...</p>
+                        </div>
+                    </div>
+                    <div class="page-text-container">
+                        <p id="page-text" class="page-text"></p>
+                        <div class="text-loading">
+                            <div class="loading-spinner"></div>
+                            <p>Generating story...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="story-navigation">
+                <button id="prev-btn" class="nav-btn" disabled>← Previous</button>
+                <button id="next-btn" class="nav-btn">Next →</button>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="loading-content">
+                <div class="loading-spinner large"></div>
+                <h3 id="loading-text">Generating your story...</h3>
+                <p id="loading-details">This may take a moment</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
+

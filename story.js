@@ -1,0 +1,98 @@
+export class StoryGenerator {
+    constructor() {
+        this.conversationHistory = [];
+    }
+    
+    async generateStory(userPrompt) {
+        // Generate the story structure and content
+        const storyData = await this.generateStoryStructure(userPrompt);
+        const pages = await this.generatePages(storyData, userPrompt);
+        
+        return {
+            title: storyData.title,
+            theme: userPrompt,
+            pages: pages
+        };
+    }
+    
+    async generateStoryStructure(userPrompt) {
+        const systemMessage = {
+            role: "system",
+            content: `You are a creative storyteller reimagining "The Giving Tree" by Shel Silverstein. 
+            Create a story structure that maintains the emotional core of the original but transforms it based on the user's prompt.
+            The story should have 6-8 pages and maintain the relationship between a character and a tree, but with the twist the user provides.
+            
+            Respond with JSON following this schema:
+            {
+                "title": "string - creative title for the reimagined story",
+                "theme": "string - the central theme/emotion of this version",
+                "pages": [
+                    {
+                        "age_stage": "string - life stage (childhood, youth, adulthood, old age, etc.)",
+                        "key_moment": "string - what happens in this scene",
+                        "emotion": "string - primary emotion"
+                    }
+                ]
+            }`
+        };
+        
+        const userMessage = {
+            role: "user",
+            content: `Create a reimagined version of "The Giving Tree" where the tree is more ${userPrompt}. Keep the essential relationship but transform the story based on this characteristic.`
+        };
+        
+        const completion = await websim.chat.completions.create({
+            messages: [systemMessage, userMessage],
+            json: true
+        });
+        
+        return JSON.parse(completion.content);
+    }
+    
+    async generatePages(storyData, userPrompt) {
+        const pages = [];
+        
+        for (let i = 0; i < storyData.pages.length; i++) {
+            const pageStructure = storyData.pages[i];
+            const page = await this.generatePageContent(pageStructure, userPrompt, i, storyData.pages.length);
+            pages.push(page);
+        }
+        
+        return pages;
+    }
+    
+    async generatePageContent(pageStructure, userPrompt, pageIndex, totalPages) {
+        const systemMessage = {
+            role: "system",
+            content: `You are writing a page for a reimagined version of "The Giving Tree" where the tree is more ${userPrompt}.
+            Write in the style of Shel Silverstein - simple, poetic, emotionally resonant.
+            This is page ${pageIndex + 1} of ${totalPages}.
+            Keep the text to 2-4 sentences, suitable for a picture book.
+            
+            Respond with JSON:
+            {
+                "text": "string - the story text for this page",
+                "imagePrompt": "string - detailed prompt for AI image generation showing this scene"
+            }`
+        };
+        
+        const userMessage = {
+            role: "user",
+            content: `Write page content for: ${JSON.stringify(pageStructure)}`
+        };
+        
+        const completion = await websim.chat.completions.create({
+            messages: [systemMessage, userMessage],
+            json: true
+        });
+        
+        const pageData = JSON.parse(completion.content);
+        
+        return {
+            text: pageData.text,
+            imagePrompt: `Children's book illustration: ${pageData.imagePrompt}. Soft, warm, hand-drawn style reminiscent of Shel Silverstein. Simple lines, expressive characters, natural colors.`,
+            imageUrl: null // Will be generated when needed
+        };
+    }
+}
+
