@@ -12,26 +12,41 @@ class GivingTreeApp {
             type: 'en-female',
             customFile: null
         };
+        this.privacySetting = 'public';
+        this.currentTab = 'public';
+        
+        // Initialize database
+        this.room = new WebsimSocket();
         
         this.initializeElements();
         this.bindEvents();
+        this.loadGallery();
     }
     
     initializeElements() {
         // Screens
         this.welcomeScreen = document.getElementById('welcome-screen');
+        this.createScreen = document.getElementById('create-screen');
+        this.galleryScreen = document.getElementById('gallery-screen');
         this.storyScreen = document.getElementById('story-screen');
         this.loadingOverlay = document.getElementById('loading-overlay');
         
         // Welcome screen elements
+        this.createStoryBtn = document.getElementById('create-story-btn');
+        this.browseGalleryBtn = document.getElementById('browse-gallery-btn');
+        
+        // Create screen elements
+        this.backToWelcomeBtn = document.getElementById('back-to-welcome-btn');
         this.userPrompt = document.getElementById('user-prompt');
         this.generateBtn = document.getElementById('generate-btn');
+        this.privacyOptions = document.querySelectorAll('input[name="privacy"]');
         
-        // Voice selection elements
-        this.voiceOptions = document.querySelectorAll('input[name="voice"]');
-        this.customVoiceUpload = document.getElementById('custom-voice-upload');
-        this.voiceFileInput = document.getElementById('voice-file');
-        this.voiceFileName = document.getElementById('voice-file-name');
+        // Gallery elements
+        this.backToWelcomeGalleryBtn = document.getElementById('back-to-welcome-gallery-btn');
+        this.publicTab = document.getElementById('public-tab');
+        this.privateTab = document.getElementById('private-tab');
+        this.galleryGrid = document.getElementById('gallery-grid');
+        this.galleryEmpty = document.getElementById('gallery-empty');
         
         // Story screen elements
         this.backBtn = document.getElementById('back-btn');
@@ -45,16 +60,40 @@ class GivingTreeApp {
         this.prevBtn = document.getElementById('prev-btn');
         this.nextBtn = document.getElementById('next-btn');
         
+        // Voice selection elements
+        this.voiceOptions = document.querySelectorAll('input[name="voice"]');
+        this.customVoiceUpload = document.getElementById('custom-voice-upload');
+        this.voiceFileInput = document.getElementById('voice-file');
+        this.voiceFileName = document.getElementById('voice-file-name');
+        
         // Loading elements
         this.loadingText = document.getElementById('loading-text');
         this.loadingDetails = document.getElementById('loading-details');
     }
     
     bindEvents() {
+        // Welcome screen events
+        this.createStoryBtn.addEventListener('click', () => this.showCreateScreen());
+        this.browseGalleryBtn.addEventListener('click', () => this.showGalleryScreen());
+        
+        // Create screen events
+        this.backToWelcomeBtn.addEventListener('click', () => this.showWelcomeScreen());
         this.generateBtn.addEventListener('click', () => this.handleGenerateStory());
         this.userPrompt.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.handleGenerateStory();
         });
+        
+        // Privacy selection events
+        this.privacyOptions.forEach(option => {
+            option.addEventListener('change', (e) => {
+                this.privacySetting = e.target.value;
+            });
+        });
+        
+        // Gallery events
+        this.backToWelcomeGalleryBtn.addEventListener('click', () => this.showWelcomeScreen());
+        this.publicTab.addEventListener('click', () => this.switchTab('public'));
+        this.privateTab.addEventListener('click', () => this.switchTab('private'));
         
         // Voice selection events
         this.voiceOptions.forEach(option => {
@@ -63,7 +102,7 @@ class GivingTreeApp {
         
         this.voiceFileInput.addEventListener('change', (e) => this.handleVoiceFileUpload(e));
         
-        this.backBtn.addEventListener('click', () => this.showWelcomeScreen());
+        this.backBtn.addEventListener('click', () => this.showGalleryScreen());
         this.narrateBtn.addEventListener('click', () => this.handleNarration());
         this.autoNarrateBtn.addEventListener('click', () => this.toggleAutoNarrate());
         this.prevBtn.addEventListener('click', () => this.goToPreviousPage());
@@ -82,30 +121,118 @@ class GivingTreeApp {
         });
     }
     
-    handleVoiceSelection(e) {
-        const selectedVoice = e.target.value;
-        this.voiceSettings.type = selectedVoice;
+    async loadGallery() {
+        try {
+            // Subscribe to public stories
+            this.room.collection('story').subscribe((stories) => {
+                this.renderGallery(stories, 'public');
+            });
+        } catch (error) {
+            console.error('Error loading gallery:', error);
+        }
+    }
+    
+    switchTab(tab) {
+        this.currentTab = tab;
         
-        if (selectedVoice === 'custom') {
-            this.customVoiceUpload.classList.remove('hidden');
+        // Update tab buttons
+        this.publicTab.classList.toggle('active', tab === 'public');
+        this.privateTab.classList.toggle('active', tab === 'private');
+        
+        if (tab === 'public') {
+            const publicStories = this.room.collection('story').getList();
+            this.renderGallery(publicStories, 'public');
         } else {
-            this.customVoiceUpload.classList.add('hidden');
-            this.voiceSettings.customFile = null;
+            const privateStories = this.getPrivateStories();
+            this.renderGallery(privateStories, 'private');
         }
     }
     
-    handleVoiceFileUpload(e) {
-        const file = e.target.files[0];
-        if (file) {
-            this.voiceSettings.customFile = file;
-            this.voiceFileName.textContent = file.name;
-            this.voiceFileName.classList.remove('hidden');
-        } else {
-            this.voiceSettings.customFile = null;
-            this.voiceFileName.classList.add('hidden');
+    getPrivateStories() {
+        try {
+            const stored = localStorage.getItem('private-stories');
+            return stored ? JSON.parse(stored) : [];
+        } catch (error) {
+            console.error('Error loading private stories:', error);
+            return [];
         }
     }
     
+    savePrivateStory(story) {
+        try {
+            const stories = this.getPrivateStories();
+            stories.unshift({
+                ...story,
+                id: Date.now().toString(),
+                created_at: new Date().toISOString()
+            });
+            localStorage.setItem('private-stories', JSON.stringify(stories));
+        } catch (error) {
+            console.error('Error saving private story:', error);
+        }
+    }
+    
+    renderGallery(stories, type) {
+        if (!stories || stories.length === 0) {
+            this.galleryGrid.classList.add('hidden');
+            this.galleryEmpty.classList.remove('hidden');
+            return;
+        }
+        
+        this.galleryGrid.classList.remove('hidden');
+        this.galleryEmpty.classList.add('hidden');
+        
+        this.galleryGrid.innerHTML = stories.map(story => {
+            const firstImage = story.pages && story.pages[0] ? story.pages[0].imageUrl : '';
+            const date = new Date(story.created_at).toLocaleDateString();
+            const author = type === 'public' ? story.username : 'You';
+            
+            return `
+                <div class="story-card" data-story-id="${story.id}" data-story-type="${type}">
+                    <img src="${firstImage}" alt="${story.title}" class="story-card-image" 
+                         onerror="this.style.display='none'">
+                    <div class="story-card-content">
+                        <h3 class="story-card-title">${story.title}</h3>
+                        <p class="story-card-theme">Theme: ${story.theme}</p>
+                        <div class="story-card-meta">
+                            <span class="story-card-author">By ${author}</span>
+                            <span class="story-card-date">${date}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        // Add click handlers to story cards
+        this.galleryGrid.querySelectorAll('.story-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const storyId = card.dataset.storyId;
+                const storyType = card.dataset.storyType;
+                this.loadStoryFromGallery(storyId, storyType);
+            });
+        });
+    }
+    
+    loadStoryFromGallery(storyId, storyType) {
+        let story;
+        
+        if (storyType === 'public') {
+            const publicStories = this.room.collection('story').getList();
+            story = publicStories.find(s => s.id === storyId);
+        } else {
+            const privateStories = this.getPrivateStories();
+            story = privateStories.find(s => s.id === storyId);
+        }
+        
+        if (story) {
+            this.currentStory = story;
+            this.currentPage = 0;
+            this.narrator.setVoiceSettings(this.voiceSettings);
+            this.showStoryScreen();
+            this.displayCurrentPage();
+        }
+    }
+
     async handleGenerateStory() {
         const prompt = this.userPrompt.value.trim();
         if (!prompt) {
@@ -135,7 +262,10 @@ class GivingTreeApp {
             this.showLoading('Generating narration...', 'Creating audio for all pages');
             await this.storyGenerator.generateNarrationForPages(this.currentStory.pages, this.voiceSettings);
             
-            this.showLoading('Finalizing...', 'Preparing your story experience');
+            this.showLoading('Saving story...', 'Finalizing your story experience');
+            
+            // Save story based on privacy setting
+            await this.saveStory(this.currentStory);
             
             this.showStoryScreen();
             await this.displayCurrentPage();
@@ -145,6 +275,46 @@ class GivingTreeApp {
         } finally {
             this.hideLoading();
             this.setGenerateButtonLoading(false);
+        }
+    }
+    
+    async saveStory(story) {
+        try {
+            if (this.privacySetting === 'public') {
+                await this.room.collection('story').create({
+                    title: story.title,
+                    theme: story.theme,
+                    pages: story.pages
+                });
+            } else {
+                this.savePrivateStory(story);
+            }
+        } catch (error) {
+            console.error('Error saving story:', error);
+        }
+    }
+
+    handleVoiceSelection(e) {
+        const selectedVoice = e.target.value;
+        this.voiceSettings.type = selectedVoice;
+        
+        if (selectedVoice === 'custom') {
+            this.customVoiceUpload.classList.remove('hidden');
+        } else {
+            this.customVoiceUpload.classList.add('hidden');
+            this.voiceSettings.customFile = null;
+        }
+    }
+    
+    handleVoiceFileUpload(e) {
+        const file = e.target.files[0];
+        if (file) {
+            this.voiceSettings.customFile = file;
+            this.voiceFileName.textContent = file.name;
+            this.voiceFileName.classList.remove('hidden');
+        } else {
+            this.voiceSettings.customFile = null;
+            this.voiceFileName.classList.add('hidden');
         }
     }
     
@@ -261,12 +431,31 @@ class GivingTreeApp {
     
     showWelcomeScreen() {
         this.welcomeScreen.classList.add('active');
+        this.createScreen.classList.remove('active');
+        this.galleryScreen.classList.remove('active');
+        this.storyScreen.classList.remove('active');
+    }
+    
+    showCreateScreen() {
+        this.welcomeScreen.classList.remove('active');
+        this.createScreen.classList.add('active');
+        this.galleryScreen.classList.remove('active');
         this.storyScreen.classList.remove('active');
         this.userPrompt.focus();
     }
     
+    showGalleryScreen() {
+        this.welcomeScreen.classList.remove('active');
+        this.createScreen.classList.remove('active');
+        this.galleryScreen.classList.add('active');
+        this.storyScreen.classList.remove('active');
+        this.switchTab(this.currentTab);
+    }
+    
     showStoryScreen() {
         this.welcomeScreen.classList.remove('active');
+        this.createScreen.classList.remove('active');
+        this.galleryScreen.classList.remove('active');
         this.storyScreen.classList.add('active');
     }
     
