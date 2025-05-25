@@ -12,6 +12,37 @@ export class Narrator {
         this.voiceSettings = voiceSettings;
     }
     
+    async playPreGeneratedAudio(audioUrl) {
+        // Stop any current narration
+        this.stop();
+        
+        this.isPlaying = true;
+        
+        try {
+            this.currentAudio = new Audio(audioUrl);
+            
+            // Set up event listeners
+            this.currentAudio.addEventListener('ended', () => {
+                this.isPlaying = false;
+                this.currentAudio = null;
+            });
+            
+            this.currentAudio.addEventListener('error', (e) => {
+                console.error('Audio playback error:', e);
+                this.isPlaying = false;
+                this.currentAudio = null;
+            });
+            
+            // Play the audio
+            await this.currentAudio.play();
+            
+        } catch (error) {
+            console.error('Audio playback error:', error);
+            this.isPlaying = false;
+            throw error;
+        }
+    }
+    
     async narrate(text) {
         // Stop any current narration
         this.stop();

@@ -269,6 +269,14 @@ body {
     color: var(--text-light);
 }
 
+.auto-narrate-on {
+    background: var(--accent-color) !important;
+}
+
+.auto-narrate-off {
+    background: var(--secondary-color);
+}
+
 /* Story Content */
 .story-content {
     max-width: 900px;

@@ -7,6 +7,7 @@ class GivingTreeApp {
         this.narrator = new Narrator();
         this.currentStory = null;
         this.currentPage = 0;
+        this.autoNarrate = false;
         this.voiceSettings = {
             type: 'en-female',
             customFile: null
@@ -36,6 +37,7 @@ class GivingTreeApp {
         this.backBtn = document.getElementById('back-btn');
         this.storyTitle = document.getElementById('story-title');
         this.narrateBtn = document.getElementById('narrate-btn');
+        this.autoNarrateBtn = document.getElementById('auto-narrate-btn');
         this.currentPageEl = document.getElementById('current-page');
         this.totalPagesEl = document.getElementById('total-pages');
         this.pageImage = document.getElementById('page-image');
@@ -63,6 +65,7 @@ class GivingTreeApp {
         
         this.backBtn.addEventListener('click', () => this.showWelcomeScreen());
         this.narrateBtn.addEventListener('click', () => this.handleNarration());
+        this.autoNarrateBtn.addEventListener('click', () => this.toggleAutoNarrate());
         this.prevBtn.addEventListener('click', () => this.goToPreviousPage());
         this.nextBtn.addEventListener('click', () => this.goToNextPage());
         
@@ -126,6 +129,10 @@ class GivingTreeApp {
             // Set voice settings for narrator
             this.narrator.setVoiceSettings(this.voiceSettings);
             
+            // Generate all narration
+            this.showLoading('Generating narration...', 'Creating audio for all pages');
+            await this.storyGenerator.generateNarrationForPages(this.currentStory.pages, this.voiceSettings);
+            
             this.showStoryScreen();
             await this.displayCurrentPage();
         } catch (error) {
@@ -177,10 +184,16 @@ class GivingTreeApp {
         // Update navigation buttons
         this.prevBtn.disabled = this.currentPage === 0;
         this.nextBtn.disabled = this.currentPage === this.currentStory.pages.length - 1;
+        
+        // Auto-narrate if enabled
+        if (this.autoNarrate && page.audioUrl) {
+            await this.playPreGeneratedNarration();
+        }
     }
     
     goToPreviousPage() {
         if (this.currentPage > 0) {
+            this.narrator.stop(); // Stop current narration
             this.currentPage--;
             this.displayCurrentPage();
         }
@@ -188,6 +201,7 @@ class GivingTreeApp {
     
     goToNextPage() {
         if (this.currentPage < this.currentStory.pages.length - 1) {
+            this.narrator.stop(); // Stop current narration
             this.currentPage++;
             this.displayCurrentPage();
         }
@@ -205,11 +219,39 @@ class GivingTreeApp {
         this.updateNarrateButton(true);
         
         try {
-            await this.narrator.narrate(page.text);
+            if (page.audioUrl) {
+                await this.playPreGeneratedNarration();
+            } else {
+                await this.narrator.narrate(page.text);
+            }
         } catch (error) {
             console.error('Narration error:', error);
         } finally {
             this.updateNarrateButton(false);
+        }
+    }
+    
+    async playPreGeneratedNarration() {
+        const page = this.currentStory.pages[this.currentPage];
+        if (!page.audioUrl) return;
+        
+        await this.narrator.playPreGeneratedAudio(page.audioUrl);
+    }
+    
+    toggleAutoNarrate() {
+        this.autoNarrate = !this.autoNarrate;
+        this.updateAutoNarrateButton();
+    }
+    
+    updateAutoNarrateButton() {
+        if (this.autoNarrate) {
+            this.autoNarrateBtn.classList.remove('auto-narrate-off');
+            this.autoNarrateBtn.classList.add('auto-narrate-on');
+            this.autoNarrateBtn.querySelector('.auto-narrate-text').textContent = 'Auto ON';
+        } else {
+            this.autoNarrateBtn.classList.remove('auto-narrate-on');
+            this.autoNarrateBtn.classList.add('auto-narrate-off');
+            this.autoNarrateBtn.querySelector('.auto-narrate-text').textContent = 'Auto';
         }
     }
     

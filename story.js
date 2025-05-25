@@ -91,8 +91,42 @@ export class StoryGenerator {
         return {
             text: pageData.text,
             imagePrompt: `Children's book illustration: ${pageData.imagePrompt}. Soft, warm, hand-drawn style reminiscent of Shel Silverstein. Simple lines, expressive characters, natural colors.`,
-            imageUrl: null // Will be generated when needed
+            imageUrl: null, // Will be generated when needed
+            audioUrl: null // Will be generated during story creation
         };
     }
-}
 
+    async generateNarrationForPages(pages, voiceSettings) {
+        for (let i = 0; i < pages.length; i++) {
+            try {
+                let result;
+                
+                if (voiceSettings.type === 'custom' && voiceSettings.customFile) {
+                    const fileDataUrl = await this.fileToDataUrl(voiceSettings.customFile);
+                    result = await websim.textToSpeech({
+                        text: pages[i].text,
+                        voice_sample: fileDataUrl
+                    });
+                } else {
+                    result = await websim.textToSpeech({
+                        text: pages[i].text,
+                        voice: voiceSettings.type
+                    });
+                }
+                
+                pages[i].audioUrl = result.url;
+            } catch (error) {
+                console.error(`Error generating narration for page ${i + 1}:`, error);
+            }
+        }
+    }
+
+    fileToDataUrl(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+}
