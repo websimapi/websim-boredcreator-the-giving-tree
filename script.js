@@ -7,6 +7,10 @@ class GivingTreeApp {
         this.narrator = new Narrator();
         this.currentStory = null;
         this.currentPage = 0;
+        this.voiceSettings = {
+            type: 'en-female',
+            customFile: null
+        };
         
         this.initializeElements();
         this.bindEvents();
@@ -21,6 +25,12 @@ class GivingTreeApp {
         // Welcome screen elements
         this.userPrompt = document.getElementById('user-prompt');
         this.generateBtn = document.getElementById('generate-btn');
+        
+        // Voice selection elements
+        this.voiceOptions = document.querySelectorAll('input[name="voice"]');
+        this.customVoiceUpload = document.getElementById('custom-voice-upload');
+        this.voiceFileInput = document.getElementById('voice-file');
+        this.voiceFileName = document.getElementById('voice-file-name');
         
         // Story screen elements
         this.backBtn = document.getElementById('back-btn');
@@ -44,6 +54,13 @@ class GivingTreeApp {
             if (e.key === 'Enter') this.handleGenerateStory();
         });
         
+        // Voice selection events
+        this.voiceOptions.forEach(option => {
+            option.addEventListener('change', (e) => this.handleVoiceSelection(e));
+        });
+        
+        this.voiceFileInput.addEventListener('change', (e) => this.handleVoiceFileUpload(e));
+        
         this.backBtn.addEventListener('click', () => this.showWelcomeScreen());
         this.narrateBtn.addEventListener('click', () => this.handleNarration());
         this.prevBtn.addEventListener('click', () => this.goToPreviousPage());
@@ -62,10 +79,40 @@ class GivingTreeApp {
         });
     }
     
+    handleVoiceSelection(e) {
+        const selectedVoice = e.target.value;
+        this.voiceSettings.type = selectedVoice;
+        
+        if (selectedVoice === 'custom') {
+            this.customVoiceUpload.classList.remove('hidden');
+        } else {
+            this.customVoiceUpload.classList.add('hidden');
+            this.voiceSettings.customFile = null;
+        }
+    }
+    
+    handleVoiceFileUpload(e) {
+        const file = e.target.files[0];
+        if (file) {
+            this.voiceSettings.customFile = file;
+            this.voiceFileName.textContent = file.name;
+            this.voiceFileName.classList.remove('hidden');
+        } else {
+            this.voiceSettings.customFile = null;
+            this.voiceFileName.classList.add('hidden');
+        }
+    }
+    
     async handleGenerateStory() {
         const prompt = this.userPrompt.value.trim();
         if (!prompt) {
             this.userPrompt.focus();
+            return;
+        }
+        
+        // Validate voice selection
+        if (this.voiceSettings.type === 'custom' && !this.voiceSettings.customFile) {
+            alert('Please upload a voice sample for custom voice narration.');
             return;
         }
         
@@ -75,6 +122,10 @@ class GivingTreeApp {
         try {
             this.currentStory = await this.storyGenerator.generateStory(prompt);
             this.currentPage = 0;
+            
+            // Set voice settings for narrator
+            this.narrator.setVoiceSettings(this.voiceSettings);
+            
             this.showStoryScreen();
             await this.displayCurrentPage();
         } catch (error) {
@@ -240,4 +291,3 @@ class GivingTreeApp {
 document.addEventListener('DOMContentLoaded', () => {
     new GivingTreeApp();
 });
-

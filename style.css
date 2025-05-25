@@ -139,6 +139,74 @@ body {
     font-style: italic;
 }
 
+/* Voice Selection */
+.voice-selection {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    margin-top: 1rem;
+    text-align: left;
+}
+
+.voice-title {
+    font-size: 1.1rem;
+    color: var(--text-dark);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.voice-options {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.voice-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.voice-option input[type="radio"] {
+    margin: 0;
+}
+
+.voice-option label {
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+}
+
+.custom-voice-upload {
+    border-top: 1px solid var(--border-light);
+    padding-top: 1rem;
+    text-align: center;
+}
+
+.file-upload-btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: var(--secondary-color);
+    color: var(--white);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.9rem;
+}
+
+.file-upload-btn:hover {
+    background: var(--primary-color);
+}
+
+.voice-file-name {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
 /* Story Screen */
 .story-header {
     display: flex;
@@ -378,4 +446,3 @@ body {
         padding-top: 10vh;
     }
 }
-

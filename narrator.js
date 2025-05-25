@@ -2,6 +2,14 @@ export class Narrator {
     constructor() {
         this.isPlaying = false;
         this.currentAudio = null;
+        this.voiceSettings = {
+            type: 'en-female',
+            customFile: null
+        };
+    }
+    
+    setVoiceSettings(voiceSettings) {
+        this.voiceSettings = voiceSettings;
     }
     
     async narrate(text) {
@@ -11,10 +19,22 @@ export class Narrator {
         this.isPlaying = true;
         
         try {
-            const result = await websim.textToSpeech({
-                text: text,
-                voice: "en-female"
-            });
+            let result;
+            
+            if (this.voiceSettings.type === 'custom' && this.voiceSettings.customFile) {
+                // Convert file to data URL for voice cloning
+                const fileDataUrl = await this.fileToDataUrl(this.voiceSettings.customFile);
+                
+                result = await websim.textToSpeech({
+                    text: text,
+                    voice_sample: fileDataUrl
+                });
+            } else {
+                result = await websim.textToSpeech({
+                    text: text,
+                    voice: this.voiceSettings.type
+                });
+            }
             
             this.currentAudio = new Audio(result.url);
             
@@ -40,6 +60,15 @@ export class Narrator {
         }
     }
     
+    fileToDataUrl(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+    
     stop() {
         if (this.currentAudio) {
             this.currentAudio.pause();
@@ -63,4 +92,3 @@ export class Narrator {
         }
     }
 }
-
