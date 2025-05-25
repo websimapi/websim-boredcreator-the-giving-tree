@@ -12,7 +12,6 @@ class GivingTreeApp {
             type: 'en-female',
             customFile: null
         };
-        this.room = new WebsimSocket();
         
         this.initializeElements();
         this.bindEvents();
@@ -22,13 +21,11 @@ class GivingTreeApp {
         // Screens
         this.welcomeScreen = document.getElementById('welcome-screen');
         this.storyScreen = document.getElementById('story-screen');
-        this.galleryScreen = document.getElementById('gallery-screen');
         this.loadingOverlay = document.getElementById('loading-overlay');
         
         // Welcome screen elements
         this.userPrompt = document.getElementById('user-prompt');
         this.generateBtn = document.getElementById('generate-btn');
-        this.saveToGalleryCheckbox = document.getElementById('save-to-gallery');
         
         // Voice selection elements
         this.voiceOptions = document.querySelectorAll('input[name="voice"]');
@@ -51,12 +48,6 @@ class GivingTreeApp {
         // Loading elements
         this.loadingText = document.getElementById('loading-text');
         this.loadingDetails = document.getElementById('loading-details');
-        
-        // Gallery elements
-        this.galleryBtn = document.getElementById('gallery-btn');
-        this.galleryBackBtn = document.getElementById('gallery-back-btn');
-        this.galleryGrid = document.getElementById('gallery-grid');
-        this.galleryLoading = document.querySelector('.gallery-loading');
     }
     
     bindEvents() {
@@ -89,9 +80,6 @@ class GivingTreeApp {
                 }
             }
         });
-        
-        this.galleryBtn.addEventListener('click', () => this.showGalleryScreen());
-        this.galleryBackBtn.addEventListener('click', () => this.showStoryScreen());
     }
     
     handleVoiceSelection(e) {
@@ -149,11 +137,6 @@ class GivingTreeApp {
             
             this.showLoading('Finalizing...', 'Preparing your story experience');
             
-            // Save to gallery if opted in
-            if (this.saveToGalleryCheckbox.checked) {
-                await this.saveStoryToGallery();
-            }
-            
             this.showStoryScreen();
             await this.displayCurrentPage();
         } catch (error) {
@@ -162,27 +145,6 @@ class GivingTreeApp {
         } finally {
             this.hideLoading();
             this.setGenerateButtonLoading(false);
-        }
-    }
-    
-    async saveStoryToGallery() {
-        try {
-            const storyData = {
-                title: this.currentStory.title,
-                theme: this.currentStory.theme,
-                pages: this.currentStory.pages.map(page => ({
-                    text: page.text,
-                    imagePrompt: page.imagePrompt,
-                    imageUrl: page.imageUrl
-                    // Don't save audioUrl for privacy/storage reasons
-                })),
-                pageCount: this.currentStory.pages.length
-            };
-            
-            await this.room.collection('giving_tree_story').create(storyData);
-        } catch (error) {
-            console.error('Error saving story to gallery:', error);
-            // Don't show error to user as this is optional
         }
     }
     
@@ -300,90 +262,12 @@ class GivingTreeApp {
     showWelcomeScreen() {
         this.welcomeScreen.classList.add('active');
         this.storyScreen.classList.remove('active');
-        this.galleryScreen.classList.remove('active');
         this.userPrompt.focus();
     }
     
     showStoryScreen() {
         this.welcomeScreen.classList.remove('active');
-        this.galleryScreen.classList.remove('active');
         this.storyScreen.classList.add('active');
-    }
-    
-    showGalleryScreen() {
-        this.storyScreen.classList.remove('active');
-        this.welcomeScreen.classList.remove('active');
-        this.galleryScreen.classList.add('active');
-        
-        this.galleryLoading.classList.remove('hidden');
-        this.galleryGrid.innerHTML = '';
-        
-        try {
-            await this.loadGalleryStories();
-        } catch (error) {
-            console.error('Error loading gallery:', error);
-            this.galleryGrid.innerHTML = '<p style="text-align: center; color: var(--text-light);">Failed to load stories</p>';
-        } finally {
-            this.galleryLoading.classList.add('hidden');
-        }
-    }
-    
-    async loadGalleryStories() {
-        const stories = this.room.collection('giving_tree_story').getList();
-        
-        // Subscribe to changes
-        this.room.collection('giving_tree_story').subscribe((updatedStories) => {
-            this.renderGalleryStories(updatedStories);
-        });
-        
-        this.renderGalleryStories(stories);
-    }
-    
-    renderGalleryStories(stories) {
-        if (stories.length === 0) {
-            this.galleryGrid.innerHTML = '<p style="text-align: center; color: var(--text-light); grid-column: 1 / -1;">No stories yet. Be the first to create one!</p>';
-            return;
-        }
-        
-        // Sort newest first (reverse since getList returns oldest first)
-        const sortedStories = [...stories].reverse();
-        
-        this.galleryGrid.innerHTML = sortedStories.map(story => `
-            <div class="story-card" onclick="app.viewGalleryStory('${story.id}')">
-                <img class="story-card-image" src="${story.pages[0]?.imageUrl || ''}" alt="${story.title}" />
-                <div class="story-card-content">
-                    <h3 class="story-card-title">${story.title}</h3>
-                    <p class="story-card-theme">"${story.theme}" tree • ${story.pageCount} pages</p>
-                    <div class="story-card-author">
-                        <img class="author-avatar" src="https://images.websim.com/avatar/${story.username}" alt="${story.username}" />
-                        <span>by ${story.username}</span>
-                        <span style="margin-left: auto; font-size: 0.7rem;">${new Date(story.created_at).toLocaleDateString()}</span>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    async viewGalleryStory(storyId) {
-        try {
-            const stories = this.room.collection('giving_tree_story').getList();
-            const story = stories.find(s => s.id === storyId);
-            
-            if (story) {
-                // Load the gallery story for viewing
-                this.currentStory = {
-                    title: story.title,
-                    theme: story.theme,
-                    pages: story.pages
-                };
-                this.currentPage = 0;
-                
-                this.showStoryScreen();
-                await this.displayCurrentPage();
-            }
-        } catch (error) {
-            console.error('Error viewing gallery story:', error);
-        }
     }
     
     showLoading(text, details) {
@@ -436,10 +320,7 @@ class GivingTreeApp {
     }
 }
 
-// Make app globally accessible for gallery card clicks
-let app;
-
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    app = new GivingTreeApp();
+    new GivingTreeApp();
 });

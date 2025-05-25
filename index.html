@@ -6,6 +6,7 @@
     <title>The Giving Tree Reimagined</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/websim-socket@latest/dist/websim-socket.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -14,6 +15,28 @@
             <div class="welcome-content">
                 <h1 class="main-title">The Giving Tree</h1>
                 <p class="subtitle">Reimagined with AI</p>
+                
+                <div class="main-actions">
+                    <button id="create-story-btn" class="action-btn primary">
+                        <span class="btn-icon">✨</span>
+                        <span class="btn-text">Create New Story</span>
+                    </button>
+                    <button id="view-gallery-btn" class="action-btn secondary">
+                        <span class="btn-icon">📚</span>
+                        <span class="btn-text">View Story Gallery</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Story Screen -->
+        <div id="create-screen" class="screen">
+            <div class="welcome-content">
+                <div class="screen-header">
+                    <button id="back-to-welcome-btn" class="back-btn">← Back</button>
+                    <h2 class="screen-title">Create Your Story</h2>
+                </div>
+                
                 <div class="story-prompt">
                     <p class="prompt-text">What if the giving tree was more...</p>
                     <div class="input-container">
@@ -23,6 +46,28 @@
                             <div class="loading-spinner hidden"></div>
                         </button>
                     </div>
+                    
+                    <!-- Privacy Selection -->
+                    <div class="privacy-selection">
+                        <h3 class="privacy-title">Story Visibility</h3>
+                        <div class="privacy-options">
+                            <div class="privacy-option">
+                                <input type="radio" id="privacy-public" name="privacy" value="public" checked>
+                                <label for="privacy-public">
+                                    <span class="privacy-label">Public</span>
+                                    <span class="privacy-desc">Share with everyone in the gallery</span>
+                                </label>
+                            </div>
+                            <div class="privacy-option">
+                                <input type="radio" id="privacy-private" name="privacy" value="private">
+                                <label for="privacy-private">
+                                    <span class="privacy-label">Private</span>
+                                    <span class="privacy-desc">Save locally on this device only</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Voice Selection -->
                     <div class="voice-selection">
                         <h3 class="voice-title">Choose Narrator Voice</h3>
@@ -51,6 +96,26 @@
                 </div>
                 <div class="examples">
                     <p>Try: mysterious, technological, magical, rebellious, ancient, cosmic...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gallery Screen -->
+        <div id="gallery-screen" class="screen">
+            <div class="gallery-content">
+                <div class="screen-header">
+                    <button id="back-to-welcome-from-gallery-btn" class="back-btn">← Back</button>
+                    <h2 class="screen-title">Story Gallery</h2>
+                    <div class="gallery-stats">
+                        <span id="story-count">0 stories</span>
+                    </div>
+                </div>
+                
+                <div class="gallery-grid" id="gallery-grid">
+                    <div class="gallery-loading">
+                        <div class="loading-spinner large"></div>
+                        <p>Loading stories...</p>
+                    </div>
                 </div>
             </div>
         </div>
